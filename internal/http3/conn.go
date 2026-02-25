@@ -232,7 +232,7 @@ func (c *Conn) CloseWithError(code quic.ApplicationErrorCode, msg string) error 
 	return c.conn.CloseWithError(code, msg)
 }
 
-func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.ConnectionTracingID, *quic.ReceiveStream, error) (hijacked bool)) {
+func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.ConnectionID, *quic.ReceiveStream, error) (hijacked bool)) {
 	var (
 		rcvdControlStr      atomic.Bool
 		rcvdQPACKEncoderStr atomic.Bool
@@ -251,7 +251,7 @@ func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.Connecti
 		go func(str *quic.ReceiveStream) {
 			streamType, err := quicvarint.Read(quicvarint.NewReader(str))
 			if err != nil {
-				id := c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID)
+				id := c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionID)
 				if hijack != nil && hijack(StreamType(streamType), id, str, err) {
 					return
 				}
@@ -288,7 +288,7 @@ func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.Connecti
 				if hijack != nil {
 					if hijack(
 						StreamType(streamType),
-						c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID),
+						c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionID),
 						str,
 						nil,
 					) {
