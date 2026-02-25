@@ -251,7 +251,7 @@ func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.Connecti
 		go func(str *quic.ReceiveStream) {
 			streamType, err := quicvarint.Read(quicvarint.NewReader(str))
 			if err != nil {
-				id := c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionID)
+				id := c.conn.Context().Value(logging.PerspectiveClient).(logging.ConnectionID)
 				if hijack != nil && hijack(StreamType(streamType), id, str, err) {
 					return
 				}
@@ -288,7 +288,7 @@ func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.Connecti
 				if hijack != nil {
 					if hijack(
 						StreamType(streamType),
-						c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionID),
+						c.conn.Context().Value(logging.PerspectiveClient).(logging.ConnectionID),
 						str,
 						nil,
 					) {
@@ -335,9 +335,9 @@ func (c *Conn) handleControlStream(str *quic.ReceiveStream) {
 		// If datagram support was enabled on our side as well as on the server side,
 		// we can expect it to have been negotiated both on the transport and on the HTTP/3 layer.
 		// Note: ConnectionState() will block until the handshake is complete (relevant when using 0-RTT).
-		if c.enableDatagrams && !c.ConnectionState().SupportsDatagrams {
-			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeSettingsError), "missing QUIC Datagram support")
-			return
+		if c.enableDatagrams && !c.ConnectionState().SupportsDatagrams.Remote {
+    		c.CloseWithError(quic.ApplicationErrorCode(ErrCodeSettingsError), "missing QUIC Datagram support")
+    		return
 		}
 		go func() {
 			if err := c.receiveDatagrams(); err != nil {
