@@ -84,8 +84,8 @@ func newClientConn(
 	conn *quic.Conn,
 	enableDatagrams bool,
 	additionalSettings map[uint64]uint64,
-	streamHijacker func(FrameType, quic.quic.ConnectionID, *quic.Stream, error) (hijacked bool, err error),
-	uniStreamHijacker func(StreamType, quic.quic.ConnectionID, *quic.ReceiveStream, error) (hijacked bool),
+	streamHijacker func(FrameType, quic.ConnectionID, *quic.Stream, error) (hijacked bool, err error),
+	uniStreamHijacker func(StreamType, quic.ConnectionID, *quic.ReceiveStream, error) (hijacked bool),
 	maxResponseHeaderBytes int,
 	disableCompression bool,
 	logger *slog.Logger,
@@ -179,7 +179,7 @@ func (c *ClientConn) handleBidirectionalStreams(streamHijacker func(FrameType, q
 			r:         str,
 			closeConn: c.conn.CloseWithError,
 			unknownFrameHandler: func(ft FrameType, e error) (processed bool, err error) {
-				id := c.conn.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionID)
+				id := c.conn.Context().Value(logging.PerspectiveClient).(logging.ConnectionID)
 				return streamHijacker(ft, id, str, e)
 			},
 		}
